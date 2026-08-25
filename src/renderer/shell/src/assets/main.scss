@@ -1,0 +1,13 @@
+body {
+  margin: 0;
+  overflow: hidden;
+}
+
+.density-3 {
+  --md-sys-density-scale: -3;
+}
+
+* {
+  user-select: none;
+  font-family: 'Google Sans';
+}
