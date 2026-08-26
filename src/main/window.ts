@@ -3,30 +3,25 @@ import { join } from 'node:path'
 import { is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 
-/** 顶部标签栏高度,内容视图从这里开始 */
+/** 顶部标签栏高度 */
 export const TOOLBAR_HEIGHT = 44
 
 let mainWindow: BrowserWindow | null = null
 
 /**
- * 当前的图层。
- *
- * 主窗口的 `contentView` 只允许由这里改写,避免多处 `addChildView` /
- * `removeChildView` 互相打乱层级(旧实现每次状态更新都重新挂载菜单视图,
- * 既产生闪烁,也让「谁在最上层」变得不可预测)。
- *
- * - `content`: 当前激活标签页的视图,位于底层。
- * - `overlay`: 上下文菜单等覆盖层,位于顶层,不需要时为 null。
+ * 当前的图层
  */
 const layers: { content: WebContentsView | null; overlay: WebContentsView | null } = {
   content: null,
   overlay: null
 }
 
-/** 已经真正挂载到窗口上的图层顺序,用于「无变化就不动」的比较 */
+/** 已经真正挂载到窗口上的图层顺序
+ * 用于无变化就不动的比较 */
 let attached: WebContentsView[] = []
 
-/** 已下发的 bounds,避免重复 setBounds 造成的抖动 */
+/** 已下发的bounds
+ * 避免重复setBounds造成的抖动 */
 const appliedBounds = new WeakMap<WebContentsView, Rectangle>()
 
 export function createWindow(): BrowserWindow {
@@ -53,7 +48,8 @@ export function createWindow(): BrowserWindow {
     return { action: 'deny' }
   })
 
-  // 窗口尺寸变化只影响布局,不应该顺带触发状态广播。
+  // 窗口尺寸变化只影响布局
+  // 不应该顺带触发状态广播
   window.on('resize', updateLayout)
   window.on('enter-full-screen', updateLayout)
   window.on('leave-full-screen', updateLayout)
@@ -81,12 +77,15 @@ export function getMainWindow(): BrowserWindow {
   return mainWindow
 }
 
-/** 主窗口是否可用;IPC 回调里先判断它再操作,避免关闭过程中抛错 */
+/** 主窗口是否可用
+ * IPC 回调里先判断它再操作
+ * 避免关闭过程中抛错 */
 export function hasMainWindow(): boolean {
   return mainWindow !== null && !mainWindow.isDestroyed()
 }
 
-/** 主窗口自身的 webContents,用于向 shell 渲染进程推送快照 */
+/** 主窗口自身webContents
+ * 用于向 shell 渲染进程推送快照 */
 export function getShellWebContents(): Electron.WebContents | null {
   if (!hasMainWindow()) return null
   const contents = mainWindow!.webContents
@@ -114,11 +113,7 @@ function desiredLayers(): WebContentsView[] {
 }
 
 /**
- * 把期望的图层顺序同步到窗口。
- *
- * 只在顺序真正变化时操作 `contentView`,并且尽量不碰已经就位的视图 ——
- * `addChildView` 对已存在的子视图等价于「重新挂载并提到最上层」,
- * 对当前正在显示的网页视图执行它会造成可见的闪烁。
+ * 把期望的图层顺序同步到窗口
  */
 function applyLayers(): void {
   if (!hasMainWindow()) return

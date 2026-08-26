@@ -11,7 +11,7 @@ import {
 } from './window'
 import { TabsChannel } from '../shared/ipc'
 
-const DEFAULT_URL = 'https://www.bing.com'
+const DEFAULT_URL = 'https://www.google.com'
 
 interface TabRecord {
   id: string
@@ -22,18 +22,16 @@ interface TabRecord {
   /**
    * 是否正在加载。
    *
-   * 取值始终来自 `webContents.isLoading()`,不由事件次数推算 ——
-   * `did-start-loading` / `did-stop-loading` 在重定向和子框架场景下不严格成对,
-   * 自行累加会让转圈动画永久残留。
+   * 取值来自`webContents.isLoading()`
    */
   loading: boolean
   destroyed: boolean
 }
 
-/** 递增计数器:id 永不复用,避免关闭标签页后新标签页撞上旧 id */
+/** id递增计数器 */
 let nextTabSeq = 1
 
-/** 每次状态变更递增,渲染进程靠它丢弃乱序到达的旧快照 */
+/** 每次状态变更递增 */
 let revision = 0
 
 const tabs: TabRecord[] = []
@@ -64,16 +62,13 @@ function toSnapshot(): TabsState {
   }
 }
 
-/** 供 `tabs:get` 使用:不改变 revision,只读当前快照 */
+/** 供`tabs:get`使用
+ * 不改变 revision*/
 export function getTabsSnapshot(): TabsState {
   return toSnapshot()
 }
 
-/**
- * 由 webContents 反查标签页 id。
- *
- * 扩展系统的回调只给 webContents,需要用它映射回我们的标签页标识。
- */
+/** 由webContents反查标签页id */
 export function getTabIdByWebContents(contents: WebContents): string | null {
   const record = tabs.find((tab) => !tab.destroyed && tab.view.webContents === contents)
   return record ? record.id : null
@@ -84,10 +79,12 @@ let broadcastScheduled = false
 /**
  * 广播状态变更。
  *
- * 一次导航会连续触发 title/favicon/url/loading 等多个事件,逐个 send 会让
- * 渲染进程收到一串中间态。这里把同一轮事件循环内的变更合并成一次推送,
- * 并直接带上完整快照 —— 渲染进程不再需要反过来 invoke 拉取,
- * 因此也不可能出现两个 invoke 的响应乱序覆盖的问题。
+ * 一次导航会连续触发 title/favicon/url/loading 等多个事件
+ * 逐个 send 会让渲染进程收到一串中间态
+ * 把同一轮事件循环内的变更合并成一次推送
+ * 并直接带上完整快照
+ * 渲染进程不再需要反过来 invoke 拉取
+ * 因此也不可能出现两个 invoke 的响应乱序覆盖的问题
  */
 function scheduleBroadcast(): void {
   if (broadcastScheduled) return
@@ -101,17 +98,14 @@ function scheduleBroadcast(): void {
   })
 }
 
-/** 状态发生变化时调用;内部做合并,可以放心地频繁调用 */
+/** 状态发生变化时调用
+ * 内部做合并
+ * 可以放心地频繁调用 */
 export function publishTabs(): void {
   scheduleBroadcast()
 }
 
-/**
- * 把用户输入的地址栏文本转成可导航的 URL。
- *
- * 旧实现直接把输入原样交给 `loadURL`,输入 `bing.com` 会因为缺少协议而
- * 加载失败,失败后主进程里的 url 与渲染进程显示的又不一致。
- */
+// 把用户输入的地址栏文本转成可导航的 URL
 export function resolveUserInput(input: string): string {
   const text = input.trim()
   if (!text) return DEFAULT_URL
@@ -129,7 +123,7 @@ function applyActive(tabId: string | null): void {
   const record = tabId ? findTab(tabId) : undefined
   setContentView(record ? record.view : null)
   if (record && extensions && !record.view.webContents.isDestroyed()) {
-    // 让扩展系统知道活动标签页变了,否则 chrome.tabs.query({active:true}) 会返回旧标签页
+    // 让扩展系统知道活动标签页变了,否则chrome.tabs.query({active:true})会返回旧标签页
     extensions.selectTab(record.view.webContents)
   }
 }
@@ -141,13 +135,7 @@ export function activateTab(tabId: string): void {
   publishTabs()
 }
 
-/**
- * 按 id 顺序重排。
- *
- * 只接受 id 列表而不是整个 Tab 数组:渲染进程发回来的对象可能携带过期的
- * title/url,旧实现用 `Object.assign` 把它们写回主进程状态,从而用陈旧数据
- * 覆盖了刚刚更新的真实值。
- */
+/** 按id顺序重排 */
 export function reorderTabs(orderedIds: string[]): void {
   const known = new Map(tabs.map((tab) => [tab.id, tab]))
   const reordered: TabRecord[] = []
@@ -192,8 +180,8 @@ export function reloadTab(tabId: string): void {
 export function closeTab(tabId: string): void {
   const record = findTab(tabId)
   if (!record) return
-  // 真正的状态清理统一放在 'destroyed' 回调里,
-  // 保证无论关闭来自 UI、window.close() 还是渲染进程崩溃,结果都一致。
+  // 真正的状态清理统一放在'destroyed'回调里,
+  // 保证无论关闭来自UI、window.close()还是渲染进程崩溃,结果都一致。
   if (record.view.webContents.isDestroyed()) {
     disposeTab(record)
   } else {
@@ -251,9 +239,7 @@ export function createTab(url?: string, activate = true): TabRecord | null {
   if (activate) {
     applyActive(record.id)
   }
-  // 先让 UI 看到这个标签页,再发起加载。
-  // 旧实现 `await loadURL()` 之后才继续,导致新标签页在页面加载完成前
-  // 完全不出现在标签栏里,用户看到的是「点了没反应」。
+  // 先让UI看到这个标签页,再发起加载
   publishTabs()
 
   record.view.webContents.loadURL(record.url).catch((error) => {
@@ -307,12 +293,7 @@ function attachTabEvents(record: TabRecord, window: BrowserWindow): void {
   })
 
   /**
-   * 加载状态直接读 `webContents.isLoading()`,不自己累加计数。
-   *
-   * 旧实现用数组 push/filter 记录「哪些 tab 正在加载」,而
-   * `did-start-loading` / `did-stop-loading` 在重定向、子框架场景下并不严格
-   * 成对出现,次数一旦不对称,「正在加载」的转圈就永久残留。
-   * 以 Electron 自己的状态为准就不存在配平问题。
+   * 加载状态直接读`webContents.isLoading()`,不自己累加计数
    */
   const syncLoading = (): void => {
     if (!alive()) return
@@ -327,14 +308,14 @@ function attachTabEvents(record: TabRecord, window: BrowserWindow): void {
   contents.on('did-finish-load', syncLoading)
   contents.on('did-fail-load', (_event, errorCode, errorDescription, _url, isMainFrame) => {
     syncLoading()
-    // -3 是用户主动中断,不算错误
+    // -3是用户主动中断,不算错误
     if (isMainFrame && errorCode !== -3) {
       console.warn(`[tabs] load failed ${errorCode}: ${errorDescription}`)
     }
   })
 
   contents.on('render-process-gone', () => {
-    // 渲染进程没了,不会再有 did-stop-loading,必须手动结束加载态
+    // 渲染进程没了,必须手动结束加载态
     if (record.destroyed) return
     record.loading = false
     publishTabs()

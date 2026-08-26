@@ -4,12 +4,7 @@ import { ExtensionsChannel } from '../shared/ipc'
 import { getShellWebContents } from './window'
 
 /**
- * 扩展列表状态。
- *
- * 旧实现让渲染进程通过 `sync-extensions` 的 `'set'` 分支写入列表,
- * 主进程只是被动存储 —— 渲染进程和 Electron 真实的扩展状态可以任意分叉。
- * 现在主进程直接以 `session.extensions` 为唯一数据源,
- * 并在 loaded/unloaded 事件时推送快照,渲染进程只读。
+ * 扩展列表状态
  */
 
 let revision = 0

@@ -1,19 +1,6 @@
 import { computed, readonly, ref, type ComputedRef, type Ref } from 'vue'
 import type { Tab, TabsState } from '../../../../shared/types/tabs'
 
-/**
- * 标签页状态的唯一渲染进程副本。
- *
- * 旧实现的两个同步缺陷:
- * - App.vue 和 Tabs.vue 各自持有一份 `ref` 状态并各自注册 `update-tabs` 监听。
- *   其中任一组件卸载时调用 `removeAllListeners('update-tabs')`,
- *   会把另一份的监听一起删掉,那一份就永久停止更新。
- * - 收到「有变化」的通知后再 `invoke('sync-tabs','get')` 回拉数据,
- *   连续变更会产生多个并发请求,响应乱序返回时旧快照覆盖新快照。
- *
- * 现在:模块级单例、主进程直接推送完整快照、revision 单调递增校验。
- */
-
 const state = ref<TabsState>({
   revision: -1,
   tabs: [],

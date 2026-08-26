@@ -7,22 +7,15 @@ import { useTabs } from '../stores/tabs'
 const { tabs, activeTabId } = useTabs()
 
 /**
- * 地址栏是「受控但可被本地编辑」的输入框。
- *
- * 旧实现把 `v-model="tab.url"` 直接绑到快照对象上,并且每敲一个字符就
- * `send('change-sort-tabs-url')` 让主进程改状态、再广播回来覆盖输入框。
- * 结果是:输入过程中光标跳动、字符丢失,页面自身导航时也会把用户
- * 正在编辑的内容冲掉。
- *
- * 现在:编辑期间输入框只受本地草稿控制,主进程推送一律不覆盖草稿;
- * 提交(回车)或放弃(失焦/Esc)后才回到跟随主进程状态。
+ * 地址栏是受控但可被本地编辑的输入框
  */
 const drafts = reactive<Record<string, string>>({})
 const editingTabId = ref<string | null>(null)
 
 const displayUrl = (tab: Tab): string => drafts[tab.id] ?? tab.url
 
-// 标签页关闭后清掉它的草稿,避免 id 复用时残留(id 本身不复用,这里只是防泄漏)
+// 标签页关闭后清掉它的草稿
+// 避免 id 复用时残留
 watch(tabs, (list) => {
   const alive = new Set(list.map((tab) => tab.id))
   for (const id of Object.keys(drafts)) {
@@ -65,13 +58,7 @@ const closeTab = (tabId: string): void => {
 }
 
 /**
- * 拖拽排序。
- *
- * 只把新的 id 顺序发给主进程,不回传整个 Tab 对象 —— 拖拽期间快照里的
- * title/url 可能已经过期,旧实现用 `Object.assign` 写回主进程会用陈旧数据
- * 覆盖刚更新的真实值。
- *
- * 拖拽结束前保持本地顺序,避免主进程广播打断动画。
+ * 拖拽排序
  */
 const localOrder = ref<Tab[] | null>(null)
 

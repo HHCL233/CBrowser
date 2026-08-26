@@ -2,11 +2,7 @@
 import Tabs from './components/Tabs.vue'
 
 /**
- * 这里不再自己订阅标签页状态。
- *
- * 旧实现在 App.vue 和 Tabs.vue 各订阅一次 `update-tabs`,并在卸载时调用
- * `removeAllListeners('update-tabs')`,导致其中一个组件卸载后另一个也收不到
- * 更新。现在状态统一由 `stores/tabs.ts` 单例维护,组件只消费。
+ * 不再自己订阅标签页状态
  */
 </script>
 
