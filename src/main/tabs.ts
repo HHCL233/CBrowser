@@ -62,6 +62,11 @@ function toSnapshot(): TabsState {
   }
 }
 
+/** 获取tabs */
+export function getTabs(): TabRecord[] {
+  return tabs
+}
+
 /** 供`tabs:get`使用
  * 不改变 revision*/
 export function getTabsSnapshot(): TabsState {
@@ -77,14 +82,7 @@ export function getTabIdByWebContents(contents: WebContents): string | null {
 let broadcastScheduled = false
 
 /**
- * 广播状态变更。
- *
- * 一次导航会连续触发 title/favicon/url/loading 等多个事件
- * 逐个 send 会让渲染进程收到一串中间态
- * 把同一轮事件循环内的变更合并成一次推送
- * 并直接带上完整快照
- * 渲染进程不再需要反过来 invoke 拉取
- * 因此也不可能出现两个 invoke 的响应乱序覆盖的问题
+ * 广播状态变更
  */
 function scheduleBroadcast(): void {
   if (broadcastScheduled) return

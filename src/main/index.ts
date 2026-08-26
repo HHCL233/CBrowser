@@ -14,6 +14,7 @@ import {
   createTab,
   destroyAllTabs,
   getTabIdByWebContents,
+  getTabs,
   getTabsSnapshot,
   initTabs,
   navigateTab,
@@ -39,7 +40,7 @@ app.whenReady().then(async () => {
   const mainWindow = createWindow()
 
   // shell 渲染进程重载(HMR、F5、崩溃恢复)后本地状态被清空,
-  // 这里在它加载完成时主动重推一次,让两侧重新对齐。
+  // 这里在它加载完成时主动重推一次,让两侧重新对齐
   mainWindow.webContents.on('did-finish-load', () => {
     publishTabs()
   })
@@ -101,7 +102,13 @@ ipcMain.on(TabsChannel.Activate, (_event, tabId: unknown) => {
 })
 
 ipcMain.on(TabsChannel.Close, (_event, tabId: unknown) => {
-  if (typeof tabId === 'string') closeTab(tabId)
+  const tabs = getTabs()
+  const mainWindow = getMainWindow()
+  if (tabs.length > 1) {
+    if (typeof tabId === 'string') closeTab(tabId)
+  } else {
+    mainWindow.close()
+  }
 })
 
 ipcMain.on(TabsChannel.Reorder, (_event, orderedIds: unknown) => {

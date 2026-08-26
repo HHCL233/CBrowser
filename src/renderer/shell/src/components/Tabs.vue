@@ -192,7 +192,7 @@ onBeforeUnmount(() => {
     overflow: hidden;
     text-overflow: ellipsis;
     width: 0;
-    flex: 1 1 auto;
+    flex: 2 1 auto;
     transition:
       flex-grow 0.35s cubic-bezier(0.42, 1.67, 0.21, 0.9),
       flex 0.35s cubic-bezier(0.42, 1.67, 0.21, 0.9);
@@ -200,12 +200,6 @@ onBeforeUnmount(() => {
     &.input {
       justify-content: start;
       flex-grow: 8;
-      &:hover {
-        flex-grow: 8;
-      }
-    }
-    &:hover {
-      flex-grow: 2;
     }
     .tab-input {
       height: 100%;

@@ -39,7 +39,7 @@ export async function initMenu(): Promise<void> {
   })
   menuView = view
 
-  // Alpha 必须写在最前,否则解析出的颜色不是透明
+  // Alpha必须写在最前,否则解析出的颜色错误
   view.setBackgroundColor('#00ffffff')
 
   view.webContents.on('destroyed', () => {

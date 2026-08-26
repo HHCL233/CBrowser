@@ -20,11 +20,7 @@ export const privilegedSchemes = [
 ]
 
 /**
- * 开发模式下向 Vite 开发服务器取资源。
- *
- * 一旦 defaultSession 里加载了带 webRequest/declarativeNetRequest 权限的扩展,
- * `net.fetch` 发起的 http(s) 请求会让主进程直接崩溃(整个应用闪退)。
- * 详见 https://github.com/electron/electron/pull/45050
+ * 开发模式下向 Vite 开发服务器取资源
  */
 const devFetch = (targetUrl: string): Promise<Response> => globalThis.fetch(targetUrl)
 
