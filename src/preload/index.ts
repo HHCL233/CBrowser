@@ -11,7 +11,6 @@ import type { CbApi, MenuShowPayload } from '../shared/types/api'
 
 /**
  * 暴露给渲染进程的受限API
- *。
  * 订阅函数统一返回取消订阅闭包,组件卸载时精确移除自己的监听
  */
 const api: CbApi = {
@@ -61,10 +60,7 @@ const api: CbApi = {
   },
   contextMenu: {
     /**
-     * 打开上下文菜单并等待结果。
-     *
-     * 把「打开」和「拿到结果」合并成一个 Promise,调用方不需要自己配对
-     * requestId,也就不会出现结果串台。
+     * 打开上下文菜单并等待结果
      */
     open(items: Menu[], x: number, y: number): Promise<string | null> {
       return new Promise((resolve) => {
