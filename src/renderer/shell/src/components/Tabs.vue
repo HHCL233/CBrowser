@@ -163,7 +163,6 @@ onBeforeUnmount(() => {
           @input="onUrlInput(tab.id, $event)"
           @keyup.enter="submitUrl(tab.id)"
           @keyup.esc="cancelEdit(tab.id)"
-          @blur="cancelEdit(tab.id)"
         />
         <m3e-icon-button
           slot="trailing"
