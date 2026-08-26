@@ -20,6 +20,9 @@ importers:
       '@vueuse/core':
         specifier: ^14.4.0
         version: 14.4.0(vue@3.5.41(typescript@5.9.3))
+      electron-chrome-context-menu:
+        specifier: ^1.1.0
+        version: 1.1.0(electron@39.8.10)
       electron-chrome-extensions:
         specifier: ^4.9.0
         version: 4.9.0
@@ -1479,6 +1482,11 @@ packages:
     resolution: {integrity: sha512-a1KM5heqS3gQCZzizXEI8RjJy3QVogULPdeSknt76uLDpBIW/HDGsMg/XgP0riP6PI9COsRvFITKKGDqA8fJxA==}
     engines: {node: '>=14.0.0'}
     hasBin: true
+
+  electron-chrome-context-menu@1.1.0:
+    resolution: {integrity: sha512-Q2sITVT+xkZ3ru/ZGjb0+tZiAXfZ46KNae0nVZdxI/RGqlM+xRcSgpkP3TmUK/Y205Q7Z5d0f4yWzjgsPWIF/Q==}
+    peerDependencies:
+      electron: '>=9.0.0'
 
   electron-chrome-extensions@4.9.0:
     resolution: {integrity: sha512-4kLlh4sPPF0ieOy/Gw7A7KrmqB07megDLqOWAWXdFLAYu+2AeOGME6uOBa80NZLbKgTqBvrsVDZ+epdszRm/EQ==}
@@ -4228,6 +4236,10 @@ snapshots:
     transitivePeerDependencies:
       - electron-builder-squirrel-windows
       - supports-color
+
+  electron-chrome-context-menu@1.1.0(electron@39.8.10):
+    dependencies:
+      electron: 39.8.10
 
   electron-chrome-extensions@4.9.0:
     dependencies:

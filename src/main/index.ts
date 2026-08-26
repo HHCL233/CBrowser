@@ -7,17 +7,20 @@ import {
   net,
   WebContentsView,
   session,
-  Extension
+  Extension,
+  IpcMainEvent
 } from 'electron'
 import { join, normalize, extname } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { type, release } from 'node:os'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { installChromeWebStore } from 'electron-chrome-web-store'
 import { ElectronChromeExtensions } from 'electron-chrome-extensions'
+import { buildChromeContextMenu } from 'electron-chrome-context-menu'
 import icon from '../../resources/icon.png?asset'
 import type { TabsState, Tab } from '../shared/types/tabs'
-import browserInfo from '../../package.json'
+import type { Menu } from '../shared/types/menu'
+
+app.commandLine.appendSwitch('enable-gpu-rasterization')
 
 protocol.registerSchemesAsPrivileged([
   {
@@ -52,8 +55,7 @@ function createWindow(): BrowserWindow {
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
-      sandbox: false,
-      webviewTag: true
+      sandbox: false
     }
   })
 
@@ -85,14 +87,27 @@ export function getMainWindow(): BrowserWindow {
 }
 
 const webviews = new Map<string, WebContentsView>()
+const menuWebviews = new Set<WebContentsView>()
 
 const updateLayout = (): void => {
   const mainWindow = getMainWindow()
   const size = mainWindow.getContentSize()
-  for (const tabView of webviews.values()) {
-    tabView.setBounds({ x: 0, y: 44, width: size[0], height: size[1] - 44 })
+  for (const webView of webviews.values()) {
+    webView.setBounds({ x: 0, y: 44, width: size[0], height: size[1] - 44 })
+  }
+  for (const webView of menuWebviews) {
+    webView.setBounds({ x: 0, y: 0, width: size[0], height: size[1] })
   }
 }
+
+/**
+ * 开发模式下向 Vite 开发服务器取资源。
+ *
+ * 一旦defaultSession里加载了带webRequest/declarativeNetRequest权限的扩展，
+ * net.fetch 发起的 http(s)请求会让主进程直接崩溃整个应用闪退）
+ * 详见 https://github.com/electron/electron/pull/45050
+ */
+const devFetch = (targetUrl: string): Promise<Response> => globalThis.fetch(targetUrl)
 
 app.whenReady().then(async () => {
   electronApp.setAppUserModelId('com.cb')
@@ -126,12 +141,12 @@ app.whenReady().then(async () => {
         subPath.startsWith('/node_modules/')
       ) {
         const viteInternalUrl = `${devBase}${subPath}${url.search}`
-        return net.fetch(viteInternalUrl)
+        return devFetch(viteInternalUrl)
       }
 
       // 请求HTML页面本体
       if (subPath === '/' || !extname(subPath)) {
-        return net.fetch(`${devBase}/${pageName}/index.html`)
+        return devFetch(`${devBase}/${pageName}/index.html`)
       }
 
       // 请求常规业务静态资源
@@ -141,7 +156,7 @@ app.whenReady().then(async () => {
       }
 
       const devResourceUrl = `${devBase}/${pageName}${cleanSubPath}${url.search}`
-      return net.fetch(devResourceUrl)
+      return devFetch(devResourceUrl)
     }
 
     let relativePath = normalize(`${pageName}${subPath}`)
@@ -160,17 +175,15 @@ app.whenReady().then(async () => {
   // cb-chrome://settings
   extensions = new ElectronChromeExtensions({ license: 'GPL-3.0' })
   await installChromeWebStore({ session: session.defaultSession })
+  await initMenu()
   await newPage()
 })
 
-const getOsNtVersion = (): string => {
-  const osType = type()
-
-  const fullRelease = release()
-
-  const mainVersion = fullRelease.split('.').slice(0, 2).join('.')
-
-  return `${osType} ${mainVersion}`
+const addTopMenu = (): void => {
+  const mainWindow = getMainWindow()
+  for (const menuView of menuWebviews) {
+    mainWindow.contentView.addChildView(menuView)
+  }
 }
 
 const switchPage = (tabId: string): void => {
@@ -195,6 +208,29 @@ const syncPageData = async (tabData: Tab, tabView: WebContentsView): Promise<voi
   await tabView.webContents.loadURL(tabData.url)
 }
 
+const initMenu = async (): Promise<WebContentsView | void> => {
+  const mainWindow = getMainWindow()
+
+  const menuView = new WebContentsView({
+    webPreferences: {
+      preload: join(__dirname, '../preload/index.js'),
+      sandbox: false
+    }
+  })
+  await menuView.webContents.loadURL('cb-chrome://menu')
+  menuWebviews.add(menuView)
+  mainWindow.contentView.addChildView(menuView)
+  menuView.webContents.openDevTools()
+
+  // 设置背景颜色为黑色
+  // 由于解析问题,需把Alpha写在最前
+  menuView.setBackgroundColor('#00ffffff')
+  menuView.setVisible(false)
+
+  updateTabsState()
+  updateLayout()
+}
+
 const newPage = async (url?: string, title?: string): Promise<WebContentsView | void> => {
   if (!extensions) return
 
@@ -217,8 +253,9 @@ const newPage = async (url?: string, title?: string): Promise<WebContentsView | 
   tabsState.tabs.push(structuredClone(tabData))
   tabsState.sortTabs.push(structuredClone(tabData))
   tabView.webContents.setUserAgent(
-    `Mozilla/5.0 (${getOsNtVersion()}; ${process.platform}; ${process.arch}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${process.versions.chrome} Safari/537.36 CBrowser/${browserInfo.version}`
+    `${browserSession.getUserAgent().replace(/Electron\/(\d+\.\d+\.\d+(?:-[a-zA-Z0-9.]+)?)\b/g, '')}`
   )
+  // 设置事件回调
   tabView.webContents.setWindowOpenHandler(({ url, frameName }) => {
     console.log('网站尝试打开新页面:', url)
     ;(async () => {
@@ -263,6 +300,14 @@ const newPage = async (url?: string, title?: string): Promise<WebContentsView | 
     tabData.url = url
     updateTabsState()
   })
+  tabView.webContents.on('did-navigate', (_event, url) => {
+    console.log('网页链接更新为:', url)
+    const [sortTabData, tabData] = findTab(tabId)
+    if (!tabData || !sortTabData) return
+    sortTabData.url = url
+    tabData.url = url
+    updateTabsState()
+  })
   tabView.webContents.on('did-start-loading', () => {
     console.log('网页开始加载')
     tabsState.loadingTabId.push(tabId)
@@ -272,6 +317,36 @@ const newPage = async (url?: string, title?: string): Promise<WebContentsView | 
     console.log('网页停止加载')
     tabsState.loadingTabId = tabsState.loadingTabId.filter((loadingTab) => tabId !== loadingTab)
     updateTabsState()
+  })
+  tabView.webContents.on('context-menu', (e, params) => {
+    const menu = buildChromeContextMenu({
+      params,
+      webContents: tabView.webContents,
+      openLink: (url) => {
+        newPage(url)
+      },
+      labels: {
+        undo: '撤销',
+        redo: '重做',
+        cut: '剪切',
+        copy: '复制',
+        delete: '删除',
+        paste: '粘贴',
+        selectAll: '全选',
+        back: '返回',
+        forward: '前进',
+        reload: '刷新',
+        inspect: '检查',
+        addToDictionary: '添加至字典',
+        exitFullScreen: '退出全屏模式',
+        emoji: '表情符号与符号',
+        openInNewTab: () => '在新标签页中打开链接',
+        openInNewWindow: () => '在新窗口中打开链接',
+        copyAddress: () => '复制链接地址'
+      }
+    })
+
+    menu.popup()
   })
 
   webviews.set(tabId, tabView)
@@ -288,7 +363,8 @@ const newPage = async (url?: string, title?: string): Promise<WebContentsView | 
 
 const updateTabsState = (): void => {
   const mainWindow = getMainWindow()
-  mainWindow.webContents.send('updateTabs')
+  addTopMenu()
+  mainWindow.webContents.send('update-tabs')
 }
 
 app.on('window-all-closed', () => {
@@ -339,6 +415,23 @@ ipcMain.handle(
     }
   }
 )
+
+// 打开上下文菜单
+ipcMain.on('context-menu', async (_: IpcMainEvent, menu: Menu[], x: number, y: number) => {
+  for (const menuView of menuWebviews) {
+    menuView.setVisible(true)
+    menuView.webContents.send('context-menu', JSON.stringify(menu), x, y)
+  }
+})
+
+ipcMain.on('context-menu-event', async (_: IpcMainEvent, type: string, items: string[]) => {
+  const mainWindow = getMainWindow()
+  if (!mainWindow) return
+  for (const menuView of menuWebviews) {
+    menuView.setVisible(false)
+  }
+  mainWindow.webContents.send('context-menu-event', type, items)
+})
 
 // 新建页面
 ipcMain.on('new-tab', async () => {

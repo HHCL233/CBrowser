@@ -30,7 +30,9 @@ export default defineConfig({
           // 主页面
           main: resolve('src/renderer/shell/index.html'),
           // 独立设置页面
-          settings: resolve('src/renderer/settings/index.html')
+          settings: resolve('src/renderer/settings/index.html'),
+          // 菜单页面
+          menu: resolve('src/renderer/menu/index.html')
         }
       }
     }

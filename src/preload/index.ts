@@ -2,6 +2,7 @@ import { contextBridge } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 import 'electron-chrome-extensions/preload'
 import 'electron-chrome-web-store/preload'
+import { injectBrowserAction } from 'electron-chrome-extensions/browser-action'
 
 // Custom APIs for renderer
 const api = {}
@@ -9,6 +10,8 @@ const api = {}
 // Use `contextBridge` APIs to expose Electron APIs to
 // renderer only if context isolation is enabled, otherwise
 // just add to the DOM global.
+injectBrowserAction()
+
 if (process.contextIsolated) {
   try {
     contextBridge.exposeInMainWorld('electron', electronAPI)
