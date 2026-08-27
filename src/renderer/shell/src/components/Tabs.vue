@@ -212,13 +212,8 @@ onBeforeUnmount(() => {
     width: 0;
     min-width: 0;
     flex: 2 1 auto;
-    transition:
-      flex-grow 0.5s cubic-bezier(0.38, 1.21, 0.22, 1),
-      flex 0.5s cubic-bezier(0.38, 1.21, 0.22, 1);
+    transition: flex-grow 0.5s cubic-bezier(0.38, 1.21, 0.22, 1);
     transform-origin: center;
-    @starting-style {
-      flex: 0 1 auto;
-    }
     &.input {
       justify-content: start;
       flex-grow: 8;
@@ -253,7 +248,6 @@ onBeforeUnmount(() => {
       .tab-icon-button {
         --_icon-button-size: 24px;
         max-width: 24px;
-        margin-left: -16px;
         .tab-icon {
           width: 16px;
           height: 16px;
