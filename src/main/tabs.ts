@@ -19,6 +19,7 @@ interface TabRecord {
   url: string
   title: string
   icon: string
+  crash: boolean
   /**
    * 是否正在加载。
    *
@@ -57,7 +58,8 @@ function toSnapshot(): TabsState {
         url: tab.url,
         title: tab.title,
         icon: tab.icon,
-        loading: tab.loading
+        loading: tab.loading,
+        crash: tab.crash
       }))
   }
 }
@@ -220,7 +222,8 @@ export function createTab(url?: string, activate = true): TabRecord | null {
     title: '',
     icon: '',
     loading: false,
-    destroyed: false
+    destroyed: false,
+    crash: false
   }
 
   tabs.push(record)
@@ -273,9 +276,10 @@ function attachTabEvents(record: TabRecord, window: BrowserWindow): void {
     publishTabs()
   })
 
-  // 只关心主框架的地址变化;子框架(广告 iframe 等)不该改写地址栏。
+  // 只关心主框架的地址变化;子框架(广告 iframe 等)不改写地址栏
   const syncUrl = (url: string, isMainFrame: boolean): void => {
     if (!alive() || !isMainFrame || record.url === url) return
+    record.crash = false
     record.url = url
     publishTabs()
   }
@@ -295,6 +299,7 @@ function attachTabEvents(record: TabRecord, window: BrowserWindow): void {
    */
   const syncLoading = (): void => {
     if (!alive()) return
+    record.crash = false
     const loading = contents.isLoading()
     if (record.loading === loading) return
     record.loading = loading
@@ -315,7 +320,9 @@ function attachTabEvents(record: TabRecord, window: BrowserWindow): void {
   contents.on('render-process-gone', () => {
     // 渲染进程没了,必须手动结束加载态
     if (record.destroyed) return
+    record.crash = true
     record.loading = false
+    record.title = '喔唷，崩溃啦！'
     publishTabs()
   })
 

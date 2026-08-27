@@ -9,6 +9,7 @@ const { tabs, activeTabId } = useTabs()
 /**
  * 地址栏是受控但可被本地编辑的输入框
  */
+
 const drafts = reactive<Record<string, string>>({})
 const editingTabId = ref<string | null>(null)
 
@@ -94,8 +95,11 @@ window.cb.tabs.onState(() => {
 
 const openTabMenu = async (tabId: string, event: MouseEvent): Promise<void> => {
   event.stopPropagation()
+  const tab = tabs.value.find((tab) => tab.id === tabId)
+  if (!tab) return
   const itemId = await window.cb.contextMenu.open(
     [
+      { icon: 'label', name: tab.title, type: 'item', id: 'label' },
       { icon: 'refresh', name: '刷新', type: 'item', id: 'reload' },
       { icon: '', name: '', type: 'divider', id: 'divider-1' },
       { icon: 'close', name: '关闭标签页', type: 'item', id: 'close' }
@@ -145,6 +149,7 @@ onBeforeUnmount(() => {
           @click="openTabMenu(tab.id, $event)"
         >
           <m3e-loading-indicator v-if="tab.loading" class="tab-loading"></m3e-loading-indicator>
+          <m3e-icon v-else-if="tab.crash" name="error"></m3e-icon>
           <img v-else-if="tab.icon" :src="tab.icon" class="tab-icon" alt="" />
           <m3e-icon v-else name="public"></m3e-icon>
         </m3e-icon-button>
@@ -163,6 +168,7 @@ onBeforeUnmount(() => {
             v-if="tab.loading"
             class="tab-input-loading"
           ></m3e-loading-indicator>
+          <m3e-icon v-else-if="tab.crash" name="error"></m3e-icon>
           <img v-else-if="tab.icon" :src="tab.icon" class="tab-input-icon" alt="" />
           <m3e-icon v-else name="public"></m3e-icon>
         </m3e-icon-button>

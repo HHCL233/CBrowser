@@ -3,15 +3,13 @@ export interface Tab {
   url: string
   title: string
   icon: string
+  crash: boolean
   /** 该标签页是否正在加载 */
   loading: boolean
 }
 
 /**
- * 标签页状态快照。
- *
- * 主进程是唯一数据源，渲染进程只持有快照的副本，
- * 因此这里不再区分 `tabs` 与 `sortTabs`：`tabs` 的数组顺序即显示顺序。
+ * 标签页状态快照
  */
 export interface TabsState {
   /** 单调递增的版本号,用于丢弃乱序到达的旧快照 */

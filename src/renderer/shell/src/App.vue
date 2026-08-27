@@ -13,9 +13,7 @@ import Tabs from './components/Tabs.vue'
         <div :class="['density-3', 'shell-tabs']">
           <Tabs />
         </div>
-        <div class="webview-div">
-          <h1>无法加载此页面</h1>
-        </div>
+        <div class="webview-div"></div>
       </div>
     </m3e-theme>
   </Teleport>
