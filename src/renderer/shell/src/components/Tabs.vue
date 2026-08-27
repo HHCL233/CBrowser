@@ -60,6 +60,8 @@ const closeTab = (tabId: string): void => {
 /**
  * 拖拽排序
  */
+let dargSyncing = false
+
 const localOrder = ref<Tab[] | null>(null)
 
 const displayTabs = computed<Tab[]>(() => localOrder.value ?? tabs.value)
@@ -70,14 +72,25 @@ const onDragStart = (): void => {
 
 const onOrderUpdate = (next: Tab[]): void => {
   localOrder.value = next
-}
-
-const onDragEnd = (): void => {
   const order = localOrder.value
-  localOrder.value = null
   if (!order) return
   window.cb.tabs.reorder(order.map((tab) => tab.id))
 }
+
+const onDragEnd = async (): Promise<void> => {
+  const order = localOrder.value
+  if (!order) return
+  dargSyncing = true
+  window.cb.tabs.reorder(order.map((tab) => tab.id))
+}
+
+window.cb.tabs.onState(() => {
+  // 拖拽更改同步后再删除本地tab顺序
+  if (dargSyncing) {
+    localOrder.value = null
+    dargSyncing = false
+  }
+})
 
 const openTabMenu = async (tabId: string, event: MouseEvent): Promise<void> => {
   event.stopPropagation()

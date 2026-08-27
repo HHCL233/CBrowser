@@ -3,12 +3,8 @@ import type { ExtensionsState } from './extensions'
 import type { Menu } from './menu'
 
 /**
- * `window.cb` 的契约。
- *
- * 定义在 shared 里而不是 preload 里,渲染进程引用它时不会把 preload 的
- * electron/node 依赖拖进 web 端类型检查。
- *
- * 所有订阅方法都返回「取消订阅」函数,组件卸载时只移除自己的监听。
+ * `window.cb` 的契约
+ * 所有订阅方法都返回取消订阅函数,组件卸载时只移除自己的监听
  */
 export interface CbTabsApi {
   onState(listener: (state: TabsState) => void): () => void
@@ -27,7 +23,8 @@ export interface CbExtensionsApi {
 }
 
 export interface CbContextMenuApi {
-  /** 打开菜单并解析为被选中项的 id;取消时为 null */
+  /** 打开菜单并解析为被选中项的 id
+   * 取消时为 null */
   open(items: Menu[], x: number, y: number): Promise<string | null>
 }
 
