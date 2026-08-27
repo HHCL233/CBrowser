@@ -322,7 +322,6 @@ function attachTabEvents(record: TabRecord, window: BrowserWindow): void {
     if (record.destroyed) return
     record.crash = true
     record.loading = false
-    record.title = '喔唷，崩溃啦！'
     publishTabs()
   })
 
@@ -339,23 +338,23 @@ function attachTabEvents(record: TabRecord, window: BrowserWindow): void {
         createTab(url)
       },
       labels: {
-        undo: '撤销',
-        redo: '重做',
-        cut: '剪切',
-        copy: '复制',
-        delete: '删除',
-        paste: '粘贴',
-        selectAll: '全选',
-        back: '返回',
-        forward: '前进',
-        reload: '刷新',
-        inspect: '检查',
-        addToDictionary: '添加至字典',
-        exitFullScreen: '退出全屏模式',
-        emoji: '表情符号与符号',
-        openInNewTab: () => '在新标签页中打开链接',
-        openInNewWindow: () => '在新窗口中打开链接',
-        copyAddress: () => '复制链接地址'
+        undo: '撤销      ',
+        redo: '重做      ',
+        cut: '剪切      ',
+        copy: '复制      ',
+        delete: '删除      ',
+        paste: '粘贴      ',
+        selectAll: '全选      ',
+        back: '返回      ',
+        forward: '前进      ',
+        reload: '刷新      ',
+        inspect: '检查      ',
+        addToDictionary: '添加至字典      ',
+        exitFullScreen: '退出全屏模式      ',
+        emoji: '表情符号与符号   ',
+        openInNewTab: () => '在新标签页中打开链接      ',
+        openInNewWindow: () => '在新窗口中打开链接      ',
+        copyAddress: () => '复制链接地址      '
       }
     })
     menu.popup({ window })

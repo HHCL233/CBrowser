@@ -231,7 +231,9 @@ onBeforeUnmount(() => {
       --m3e-search-bar-input-text-font-size: 14px;
       --m3e-search-bar-supporting-text-font-size: 14px;
       .tab-icon-button {
-        width: 52px;
+        --_icon-button-size: 24px;
+        max-width: 24px;
+        margin-left: -16px;
         .tab-input-icon {
           width: 16px;
           height: 16px;
@@ -249,7 +251,9 @@ onBeforeUnmount(() => {
       --m3e-button-small-leading-space: var(--md-sys-measurement-space150);
       --m3e-button-container-height: 48px;
       .tab-icon-button {
-        width: 16px;
+        --_icon-button-size: 24px;
+        max-width: 24px;
+        margin-left: -16px;
         .tab-icon {
           width: 16px;
           height: 16px;
