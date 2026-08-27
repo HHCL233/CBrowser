@@ -24,6 +24,7 @@ import {
 } from './tabs'
 import { abandonMenuFor, closeMenu, initMenu, openMenu } from './menu'
 import { getExtensionsSnapshot, initExtensionsState } from './extensions'
+// import { googleOAuth } from './oauth'
 
 app.commandLine.appendSwitch('enable-gpu-rasterization')
 protocol.registerSchemesAsPrivileged(privilegedSchemes)
@@ -73,6 +74,7 @@ app.whenReady().then(async () => {
   initExtensionsState()
   await initMenu()
   createTab()
+  // await googleOAuth()
 })
 
 app.on('window-all-closed', () => {

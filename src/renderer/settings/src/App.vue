@@ -1,5 +1,9 @@
 <script setup lang="ts">
-import { RouterView } from 'vue-router'
+import { computed } from 'vue'
+import { RouterView, useRouter } from 'vue-router'
+
+const router = useRouter()
+const currentRouter = computed(() => router.currentRoute.value)
 </script>
 
 <template>
@@ -15,7 +19,22 @@ import { RouterView } from 'vue-router'
           <span slot="title">设置</span>
         </m3e-app-bar>
         <m3e-drawer-container class="drawer-container" start-mode="auto">
-          <div slot="start" id="nav-drawer">Start drawer</div>
+          <div id="nav-drawer" slot="start">
+            <m3e-nav-menu>
+              <m3e-nav-menu-item
+                v-for="(value, index) in router.getRoutes()"
+                :key="index"
+                :selected="currentRouter.name === value.name"
+              >
+                <m3e-icon
+                  slot="icon"
+                  :name="value.meta.icon ?? 'info'"
+                  aria-hidden="true"
+                ></m3e-icon>
+                <span slot="label">{{ value.meta.name ?? '' }}</span>
+              </m3e-nav-menu-item>
+            </m3e-nav-menu>
+          </div>
           <div class="content-container-div">
             <RouterView />
           </div>

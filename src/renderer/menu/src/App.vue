@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { M3eMenuElement, M3eMenuTriggerElement } from '@m3e/web/menu'
 import { onBeforeUnmount, ref, useTemplateRef } from 'vue'
+import { sleep } from '../../../shared/utils/sleep'
 import type { Menu } from '../../../shared/types/menu'
 
 /**
@@ -44,7 +45,7 @@ const stopShowListener = window.cb.menuHost.onShow(async ({ requestId, items, x:
 })
 
 /** 菜单开合状态变化;`closed`是唯一的结果上报出口 */
-const onToggle = (event: Event): void => {
+const onToggle = async (event: Event): Promise<void> => {
   const toggleEvent = event as ToggleEvent
   if (toggleEvent.newState !== 'closed') return
 
@@ -52,6 +53,7 @@ const onToggle = (event: Event): void => {
   if (!requestId) return
   activeRequestId.value = null
 
+  await sleep(150)
   if (selectedItemId !== null) {
     window.cb.menuHost.select(requestId, selectedItemId)
   } else {
@@ -70,12 +72,13 @@ const onItemClick = (itemId: string): void => {
 /** 点击菜单外的透明区域
  * 直接关菜单
  * 结果由 onToggle 上报为取消 */
-const onBackdropClick = (): void => {
+const onBackdropClick = async (): Promise<void> => {
   menuRef.value?.hide()
   if (activeRequestId.value && !menuRef.value?.isOpen) {
     // 菜单已经处于关闭态,toggle 不会再触发
     const requestId = activeRequestId.value
     activeRequestId.value = null
+    await sleep(150)
     window.cb.menuHost.dismiss(requestId)
   }
 }
