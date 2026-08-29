@@ -3,7 +3,6 @@ import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { VueDraggable } from 'vue-draggable-plus'
 import type { Tab } from '../../../../shared/types/tabs'
 import { useTabs } from '../stores/tabs'
-import { sleep } from '../../../../shared/utils/sleep'
 
 const { tabs, activeTabId } = useTabs()
 
@@ -18,7 +17,6 @@ const emits = defineEmits<{
 
 const drafts = reactive<Record<string, string>>({})
 const editingTabId = ref<string | null>(null)
-const closingTabIds = ref<Set<string>>(new Set())
 const displayUrl = (tab: Tab): string => drafts[tab.id] ?? tab.url
 
 // 标签页关闭后清掉它的草稿
@@ -61,14 +59,7 @@ const createTab = (): void => {
 }
 
 const closeTab = async (tabId: string): Promise<void> => {
-  if (closingTabIds.value.size >= 1) return
-  closingTabIds.value.add(tabId)
-
-  window.cb.tabs.activate(tabs.value[Math.max(0, tabs.value.length - 2)].id)
-  await sleep(250)
-
   window.cb.tabs.close(tabId)
-  closingTabIds.value.delete(tabId)
 }
 
 /**
@@ -138,164 +129,193 @@ onBeforeUnmount(() => {
     class="tab-draggable"
     :animation="150"
     filter=".no-drag"
+    target=".sort-target"
     :prevent-on-filter="false"
     @start="onDragStart"
     @update:model-value="onOrderUpdate"
     @end="onDragEnd"
   >
-    <div
-      v-for="tab in displayTabs"
-      :key="tab.id"
-      :class="{ tab: true, input: activeTabId === tab.id, closing: closingTabIds.has(tab.id) }"
-    >
-      <m3e-button
-        v-if="activeTabId !== tab.id"
-        variant="outlined"
-        class="tab-button"
-        size="small"
-        @click="activate(tab.id)"
+    <TransitionGroup tag="ul" name="fade" class="sort-target">
+      <div
+        v-for="tab in displayTabs"
+        :key="tab.id"
+        :class="{ tab: true, input: activeTabId === tab.id }"
       >
-        <m3e-icon-button
-          slot="icon"
-          variant="standard"
-          class="tab-icon-button"
+        <m3e-button
+          v-if="activeTabId !== tab.id"
+          variant="outlined"
+          class="tab-button"
           size="small"
-          width="wide"
-          @click="openTabMenu(tab.id, $event)"
+          @click="activate(tab.id)"
         >
-          <m3e-loading-indicator v-if="tab.loading" class="tab-loading"></m3e-loading-indicator>
-          <m3e-icon v-else-if="tab.crash" name="error"></m3e-icon>
-          <img v-else-if="tab.icon" :src="tab.icon" class="tab-icon" alt="" />
-          <m3e-icon v-else name="public"></m3e-icon>
-        </m3e-icon-button>
-        <span class="tab-title">{{ tab.title || tab.url }}</span>
-      </m3e-button>
-      <m3e-search-bar v-else class="tab-input">
-        <m3e-icon-button
-          slot="leading"
-          variant="standard"
-          class="tab-icon-button"
-          size="small"
-          width="wide"
-          @click="openTabMenu(tab.id, $event)"
-        >
-          <m3e-loading-indicator
-            v-if="tab.loading"
-            class="tab-input-loading"
-          ></m3e-loading-indicator>
-          <m3e-icon v-else-if="tab.crash" name="error"></m3e-icon>
-          <img v-else-if="tab.icon" :src="tab.icon" class="tab-input-icon" alt="" />
-          <m3e-icon v-else name="public"></m3e-icon>
-        </m3e-icon-button>
-        <input
-          slot="input"
-          :value="displayUrl(tab)"
-          spellcheck="false"
-          type="text"
-          :placeholder="tab.title"
-          class="no-drag"
-          @input="onUrlInput(tab.id, $event)"
-          @keyup.enter="submitUrl(tab.id)"
-          @keyup.esc="cancelEdit(tab.id)"
-        />
-        <m3e-icon-button
-          slot="trailing"
-          variant="standard"
-          class="tab-close no-drag"
-          size="small"
-          @click="closeTab(tab.id)"
-        >
-          <m3e-icon name="close"></m3e-icon>
-        </m3e-icon-button>
-      </m3e-search-bar>
-    </div>
-    <m3e-icon-button width="wide" variant="outlined" class="icon-tab no-drag" @click="createTab">
-      <m3e-icon name="add"></m3e-icon>
-    </m3e-icon-button>
-    <m3e-icon-button variant="outlined" toggle class="icon-tab no-drag" width="wide">
-      <m3e-icon name="right_panel_open"></m3e-icon>
-      <m3e-icon slot="selected" name="right_panel_close"></m3e-icon>
-      <m3e-drawer-toggle for="nav-drawer"></m3e-drawer-toggle>
-    </m3e-icon-button>
+          <m3e-icon-button
+            slot="icon"
+            variant="standard"
+            class="tab-icon-button"
+            size="small"
+            width="wide"
+            @click="openTabMenu(tab.id, $event)"
+          >
+            <m3e-loading-indicator v-if="tab.loading" class="tab-loading"></m3e-loading-indicator>
+            <m3e-icon v-else-if="tab.crash" name="error"></m3e-icon>
+            <img v-else-if="tab.icon" :src="tab.icon" class="tab-icon" alt="" />
+            <m3e-icon v-else name="public"></m3e-icon>
+          </m3e-icon-button>
+          <span class="tab-title">{{ tab.title || tab.url }}</span>
+        </m3e-button>
+        <m3e-search-bar v-else class="tab-input">
+          <m3e-icon-button
+            slot="leading"
+            variant="standard"
+            class="tab-icon-button"
+            size="small"
+            width="wide"
+            @click="openTabMenu(tab.id, $event)"
+          >
+            <m3e-loading-indicator
+              v-if="tab.loading"
+              class="tab-input-loading"
+            ></m3e-loading-indicator>
+            <m3e-icon v-else-if="tab.crash" name="error"></m3e-icon>
+            <img v-else-if="tab.icon" :src="tab.icon" class="tab-input-icon" alt="" />
+            <m3e-icon v-else name="public"></m3e-icon>
+          </m3e-icon-button>
+          <input
+            slot="input"
+            :value="displayUrl(tab)"
+            spellcheck="false"
+            type="text"
+            :placeholder="tab.title"
+            class="no-drag"
+            @input="onUrlInput(tab.id, $event)"
+            @keyup.enter="submitUrl(tab.id)"
+            @keyup.esc="cancelEdit(tab.id)"
+          />
+          <m3e-icon-button
+            slot="trailing"
+            variant="standard"
+            class="tab-close no-drag"
+            size="small"
+            @click="closeTab(tab.id)"
+          >
+            <m3e-icon name="close"></m3e-icon>
+          </m3e-icon-button>
+        </m3e-search-bar>
+      </div>
+      <m3e-icon-button
+        key="add"
+        width="wide"
+        variant="outlined"
+        class="icon-tab no-drag"
+        @click="createTab"
+      >
+        <m3e-icon name="add"></m3e-icon>
+      </m3e-icon-button>
+      <m3e-icon-button
+        key="sidebar"
+        variant="outlined"
+        toggle
+        class="icon-tab no-drag"
+        width="wide"
+      >
+        <m3e-icon name="right_panel_open"></m3e-icon>
+        <m3e-icon slot="selected" name="right_panel_close"></m3e-icon>
+        <m3e-drawer-toggle for="nav-drawer"></m3e-drawer-toggle>
+      </m3e-icon-button>
+    </TransitionGroup>
   </VueDraggable>
 </template>
 <style lang="scss" scoped>
 .tab-draggable {
   width: 100%;
-  display: flex;
-  gap: 4px;
   height: 100%;
-  .tab {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    width: 0;
-    min-width: 0;
-    flex-grow: 2;
-    flex-shrink: 1;
-    flex-basis: auto;
-    transition:
-      flex-grow 0.5s cubic-bezier(0.38, 1.21, 0.22, 1),
-      opacity 0.5s;
-    transform-origin: center;
-    opacity: 1;
-    &.closing {
-      flex-grow: 0 !important;
-      flex-shrink: 0 !important;
-      pointer-events: none;
-      opacity: 0;
-    }
-    &.input {
-      justify-content: start;
-      flex-grow: 8;
-      @starting-style {
-        opacity: 0;
-        flex-grow: 0;
+  .sort-target {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    gap: 4px;
+    padding: 0;
+    margin: 0;
+    .tab {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      width: 0;
+      min-width: 0;
+      flex-grow: 2;
+      flex-shrink: 1;
+      flex-basis: auto;
+      transform-origin: center;
+      transition: all 0.5s cubic-bezier(0.38, 1.21, 0.22, 1);
+      &.input {
+        justify-content: start;
+        flex-grow: 8;
       }
-    }
-    .tab-input {
-      height: 100%;
-      --m3e-search-bar-input-text-font-size: 14px;
-      --m3e-search-bar-supporting-text-font-size: 14px;
-      .tab-icon-button {
-        --_icon-button-size: 24px;
-        max-width: 24px;
-        margin-left: -16px;
-        .tab-input-icon {
-          width: 16px;
-          height: 16px;
-        }
-        .tab-input-loading {
-          width: 44px;
-          overflow: visible;
-          transform: scale(0.5);
+      .tab-input {
+        height: 100%;
+        --m3e-search-bar-input-text-font-size: 14px;
+        --m3e-search-bar-supporting-text-font-size: 14px;
+        .tab-icon-button {
+          --_icon-button-size: 24px;
+          max-width: 24px;
+          margin-left: -16px;
+          .tab-input-icon {
+            width: 16px;
+            height: 16px;
+          }
+          .tab-input-loading {
+            width: 44px;
+            overflow: visible;
+            transform: scale(0.5);
+          }
         }
       }
-    }
-    .tab-button {
-      width: 100%;
-      --m3e-button-shape-pressed-morph: 14px;
-      --m3e-button-small-leading-space: var(--md-sys-measurement-space150);
-      --m3e-button-container-height: 48px;
-      .tab-icon-button {
-        --_icon-button-size: 24px;
-        max-width: 24px;
-        .tab-icon {
-          width: 16px;
-          height: 16px;
-        }
-        .tab-loading {
-          width: 44px;
-          overflow: visible;
-          transform: scale(0.5);
+      .tab-button {
+        width: 100%;
+        --m3e-button-shape-pressed-morph: 14px;
+        --m3e-button-small-leading-space: var(--md-sys-measurement-space150);
+        --m3e-button-container-height: 48px;
+        .tab-icon-button {
+          --_icon-button-size: 24px;
+          max-width: 24px;
+          .tab-icon {
+            width: 16px;
+            height: 16px;
+          }
+          .tab-loading {
+            width: 44px;
+            overflow: visible;
+            transform: scale(0.5);
+          }
         }
       }
+    }
+    .icon-tab {
+      white-space: nowrap;
+      overflow: hidden;
+      --m3e-icon-button-container-height: 48px;
     }
   }
-  .icon-tab {
-    white-space: nowrap;
-    overflow: hidden;
-    --m3e-icon-button-container-height: 48px;
-  }
+}
+
+.fade-move,
+.fade-enter-active,
+.fade-leave-active {
+  transition: all 0.5s cubic-bezier(0.38, 1.21, 0.22, 1);
+}
+
+/** 进入动画 */
+.fade-enter-from {
+  opacity: 0;
+  flex-grow: 0 !important;
+}
+
+/** 离开动画 */
+.fade-leave-to {
+  opacity: 0;
+  flex-grow: 0 !important;
+}
+
+.fade-leave-active {
 }
 </style>
