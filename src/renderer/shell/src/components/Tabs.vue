@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { VueDraggable } from 'vue-draggable-plus'
 import type { Tab } from '../../../../shared/types/tabs'
 import { useTabs } from '../stores/tabs'
@@ -66,12 +66,14 @@ const closeTab = async (tabId: string): Promise<void> => {
  * 拖拽排序
  */
 let dargSyncing = false
+const isDarg = ref(false)
 
 const localOrder = ref<Tab[] | null>(null)
 
 const displayTabs = computed<Tab[]>(() => localOrder.value ?? tabs.value)
 
 const onDragStart = (): void => {
+  isDarg.value = true
   emits('startDarg')
   localOrder.value = [...tabs.value]
 }
@@ -84,6 +86,10 @@ const onOrderUpdate = (next: Tab[]): void => {
 }
 
 const onDragEnd = async (): Promise<void> => {
+  nextTick(() => {
+    isDarg.value = false
+  })
+
   emits('endDarg')
   const order = localOrder.value
   if (!order) return
@@ -135,11 +141,11 @@ onBeforeUnmount(() => {
     @update:model-value="onOrderUpdate"
     @end="onDragEnd"
   >
-    <TransitionGroup tag="ul" name="fade" class="sort-target">
+    <TransitionGroup tag="div" class="sort-target" :name="!isDarg ? 'fade' : undefined">
       <div
         v-for="tab in displayTabs"
         :key="tab.id"
-        :class="{ tab: true, input: activeTabId === tab.id }"
+        :class="{ tab: true, input: activeTabId === tab.id, noDarg: !isDarg }"
       >
         <m3e-button
           v-if="activeTabId !== tab.id"
@@ -246,7 +252,10 @@ onBeforeUnmount(() => {
       flex-shrink: 1;
       flex-basis: auto;
       transform-origin: center;
-      transition: all 0.5s cubic-bezier(0.38, 1.21, 0.22, 1);
+      //transition: all 0.5s cubic-bezier(0.38, 1.21, 0.22, 1);
+      &.noDarg {
+        transition: all 0.5s cubic-bezier(0.38, 1.21, 0.22, 1);
+      }
       &.input {
         justify-content: start;
         flex-grow: 8;
@@ -314,8 +323,5 @@ onBeforeUnmount(() => {
 .fade-leave-to {
   opacity: 0;
   flex-grow: 0 !important;
-}
-
-.fade-leave-active {
 }
 </style>
