@@ -39,3 +39,13 @@ export const MenuChannel = {
   /** 主进程把菜单结果转发回发起方 */
   Result: 'menu:result'
 } as const
+
+export const downloadChannel = {
+  /** 主进程把下载数据提供给渲染进程 */
+  Data: 'download:data'
+}
+
+export const WindowChannel = {
+  /** 更新webview位置 */
+  updateSize: 'window:update'
+}

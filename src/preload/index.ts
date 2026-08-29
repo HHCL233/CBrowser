@@ -3,11 +3,19 @@ import { electronAPI } from '@electron-toolkit/preload'
 import 'electron-chrome-extensions/preload'
 import 'electron-chrome-web-store/preload'
 import { injectBrowserAction } from 'electron-chrome-extensions/browser-action'
-import { ExtensionsChannel, MenuChannel, TabsChannel } from '../shared/ipc'
+import {
+  downloadChannel,
+  ExtensionsChannel,
+  MenuChannel,
+  TabsChannel,
+  WindowChannel
+} from '../shared/ipc'
 import type { TabsState } from '../shared/types/tabs'
 import type { ExtensionsState } from '../shared/types/extensions'
 import type { Menu, MenuResult } from '../shared/types/menu'
 import type { CbApi, MenuShowPayload } from '../shared/types/api'
+import { DownloadState } from '../shared/types/download'
+import { WebviewSize } from '../shared/types/window'
 
 /**
  * 暴露给渲染进程的受限API
@@ -80,6 +88,22 @@ const api: CbApi = {
           })
           .catch(() => resolve(null))
       })
+    }
+  },
+  download: {
+    /** 下载数据更新事件 */
+    onState(listener: (state: DownloadState) => void): () => void {
+      const handler = (_event: unknown, state: DownloadState): void => listener(state)
+      ipcRenderer.on(downloadChannel.Data, handler)
+      return () => {
+        ipcRenderer.removeListener(downloadChannel.Data, handler)
+      }
+    }
+  },
+  window: {
+    /** 更新webview大小 */
+    updateSize(size: WebviewSize): void {
+      ipcRenderer.send(WindowChannel.updateSize, size)
     }
   },
   /** 仅菜单窗口使用 */

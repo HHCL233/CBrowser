@@ -1,6 +1,8 @@
 import type { TabsState } from './tabs'
 import type { ExtensionsState } from './extensions'
 import type { Menu } from './menu'
+import { DownloadState } from './download'
+import { WebviewSize } from './window'
 
 /**
  * `window.cb` 的契约
@@ -35,6 +37,10 @@ export interface MenuShowPayload {
   y: number
 }
 
+export interface CbDownloadApi {
+  onState(listener: (state: DownloadState) => void): () => void
+}
+
 /** 仅上下文菜单窗口使用 */
 export interface CbMenuHostApi {
   onShow(listener: (payload: MenuShowPayload) => void): () => void
@@ -42,9 +48,15 @@ export interface CbMenuHostApi {
   dismiss(requestId: string): void
 }
 
+export interface CbWindowApi {
+  updateSize(size: WebviewSize): void
+}
+
 export interface CbApi {
   tabs: CbTabsApi
   extensions: CbExtensionsApi
   contextMenu: CbContextMenuApi
+  download: CbDownloadApi
+  window: CbWindowApi
   menuHost: CbMenuHostApi
 }

@@ -10,8 +10,9 @@ import {
   setContentView
 } from './window'
 import { TabsChannel } from '../shared/ipc'
+import { newDownload } from './download'
 
-const DEFAULT_URL = 'https://www.google.com'
+const DEFAULT_URL = 'https://www.bing.com'
 
 interface TabRecord {
   id: string
@@ -181,7 +182,7 @@ export function closeTab(tabId: string): void {
   const record = findTab(tabId)
   if (!record) return
   // 真正的状态清理统一放在'destroyed'回调里,
-  // 保证无论关闭来自UI、window.close()还是渲染进程崩溃,结果都一致。
+  // 保证无论关闭来自UI、window.close()还是渲染进程崩溃,结果都一致
   if (record.view.webContents.isDestroyed()) {
     disposeTab(record)
   } else {
@@ -226,6 +227,8 @@ export function createTab(url?: string, activate = true): TabRecord | null {
     crash: false
   }
 
+  // 设置页面圆角
+  record.view.setBorderRadius(16)
   tabs.push(record)
   extensions.addTab(record.view.webContents, window)
   record.view.webContents.setUserAgent(
@@ -358,6 +361,16 @@ function attachTabEvents(record: TabRecord, window: BrowserWindow): void {
       }
     })
     menu.popup({ window })
+  })
+
+  contents.session.on('will-download', (_event, item) => {
+    const fileName = item.getFilename()
+
+    // 设置默认下载路径
+    // item.setSavePath(savePath)
+
+    console.log(`开始下载 ${fileName}`)
+    newDownload(fileName, 0, item)
   })
 }
 

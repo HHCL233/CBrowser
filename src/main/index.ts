@@ -5,9 +5,9 @@ import { ElectronChromeExtensions } from 'electron-chrome-extensions'
 import type { TabsState } from '../shared/types/tabs'
 import type { ExtensionsState } from '../shared/types/extensions'
 import type { MenuRequest } from '../shared/types/menu'
-import { ExtensionsChannel, MenuChannel, TabsChannel } from '../shared/ipc'
+import { ExtensionsChannel, MenuChannel, TabsChannel, WindowChannel } from '../shared/ipc'
 import { privilegedSchemes, registerCbProtocol } from './protocol'
-import { createWindow, getMainWindow } from './window'
+import { createWindow, getMainWindow, changeWebviewSize } from './window'
 import {
   activateTab,
   closeTab,
@@ -24,6 +24,7 @@ import {
 } from './tabs'
 import { abandonMenuFor, closeMenu, initMenu, openMenu } from './menu'
 import { getExtensionsSnapshot, initExtensionsState } from './extensions'
+
 // import { googleOAuth } from './oauth'
 
 app.commandLine.appendSwitch('enable-gpu-rasterization')
@@ -152,6 +153,27 @@ ipcMain.on(MenuChannel.Select, (_event, requestId: unknown, itemId: unknown) => 
 
 ipcMain.on(MenuChannel.Dismiss, (_event, requestId: unknown) => {
   if (typeof requestId === 'string') closeMenu(requestId, null)
+})
+
+ipcMain.on(WindowChannel.updateSize, (_event, size: unknown) => {
+  if (typeof size === 'object') {
+    if (size && 'x' in size && 'y' in size && 'width' in size && 'height' in size) {
+      const s = size as Record<string, unknown>
+      if (
+        (typeof s.x === 'number' || s.x === null) &&
+        (typeof s.y === 'number' || s.y === null) &&
+        typeof s.width === 'number' &&
+        typeof s.height === 'number'
+      ) {
+        changeWebviewSize({
+          x: s.x,
+          y: s.y,
+          width: s.width,
+          height: s.height
+        })
+      }
+    }
+  }
 })
 
 app.on('web-contents-created', (_event, contents) => {

@@ -3,8 +3,14 @@ import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { VueDraggable } from 'vue-draggable-plus'
 import type { Tab } from '../../../../shared/types/tabs'
 import { useTabs } from '../stores/tabs'
+import { sleep } from '../../../../shared/utils/sleep'
 
 const { tabs, activeTabId } = useTabs()
+
+const emits = defineEmits<{
+  startDarg: []
+  endDarg: []
+}>()
 
 /**
  * 地址栏是受控但可被本地编辑的输入框
@@ -12,7 +18,7 @@ const { tabs, activeTabId } = useTabs()
 
 const drafts = reactive<Record<string, string>>({})
 const editingTabId = ref<string | null>(null)
-
+const closingTabIds = ref<Set<string>>(new Set())
 const displayUrl = (tab: Tab): string => drafts[tab.id] ?? tab.url
 
 // 标签页关闭后清掉它的草稿
@@ -54,8 +60,15 @@ const createTab = (): void => {
   window.cb.tabs.create()
 }
 
-const closeTab = (tabId: string): void => {
+const closeTab = async (tabId: string): Promise<void> => {
+  if (closingTabIds.value.size >= 1) return
+  closingTabIds.value.add(tabId)
+
+  window.cb.tabs.activate(tabs.value[Math.max(0, tabs.value.length - 2)].id)
+  await sleep(250)
+
   window.cb.tabs.close(tabId)
+  closingTabIds.value.delete(tabId)
 }
 
 /**
@@ -68,6 +81,7 @@ const localOrder = ref<Tab[] | null>(null)
 const displayTabs = computed<Tab[]>(() => localOrder.value ?? tabs.value)
 
 const onDragStart = (): void => {
+  emits('startDarg')
   localOrder.value = [...tabs.value]
 }
 
@@ -79,6 +93,7 @@ const onOrderUpdate = (next: Tab[]): void => {
 }
 
 const onDragEnd = async (): Promise<void> => {
+  emits('endDarg')
   const order = localOrder.value
   if (!order) return
   dargSyncing = true
@@ -131,7 +146,7 @@ onBeforeUnmount(() => {
     <div
       v-for="tab in displayTabs"
       :key="tab.id"
-      :class="{ tab: true, input: activeTabId === tab.id }"
+      :class="{ tab: true, input: activeTabId === tab.id, closing: closingTabIds.has(tab.id) }"
     >
       <m3e-button
         v-if="activeTabId !== tab.id"
@@ -197,6 +212,11 @@ onBeforeUnmount(() => {
     <m3e-icon-button width="wide" variant="outlined" class="icon-tab no-drag" @click="createTab">
       <m3e-icon name="add"></m3e-icon>
     </m3e-icon-button>
+    <m3e-icon-button variant="outlined" toggle class="icon-tab no-drag" width="wide">
+      <m3e-icon name="right_panel_open"></m3e-icon>
+      <m3e-icon slot="selected" name="right_panel_close"></m3e-icon>
+      <m3e-drawer-toggle for="nav-drawer"></m3e-drawer-toggle>
+    </m3e-icon-button>
   </VueDraggable>
 </template>
 <style lang="scss" scoped>
@@ -211,13 +231,25 @@ onBeforeUnmount(() => {
     text-overflow: ellipsis;
     width: 0;
     min-width: 0;
-    flex: 2 1 auto;
-    transition: flex-grow 0.5s cubic-bezier(0.38, 1.21, 0.22, 1);
+    flex-grow: 2;
+    flex-shrink: 1;
+    flex-basis: auto;
+    transition:
+      flex-grow 0.5s cubic-bezier(0.38, 1.21, 0.22, 1),
+      opacity 0.5s;
     transform-origin: center;
+    opacity: 1;
+    &.closing {
+      flex-grow: 0 !important;
+      flex-shrink: 0 !important;
+      pointer-events: none;
+      opacity: 0;
+    }
     &.input {
       justify-content: start;
       flex-grow: 8;
       @starting-style {
+        opacity: 0;
         flex-grow: 0;
       }
     }
@@ -264,7 +296,6 @@ onBeforeUnmount(() => {
     white-space: nowrap;
     overflow: hidden;
     --m3e-icon-button-container-height: 48px;
-    --m3e-icon-button-shape-pressed-morph: 9999px;
   }
 }
 </style>

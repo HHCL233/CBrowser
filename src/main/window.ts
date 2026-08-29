@@ -2,9 +2,18 @@ import { BrowserWindow, WebContentsView, shell, type Rectangle } from 'electron'
 import { join } from 'node:path'
 import { is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+import { type WebviewSize } from '../shared/types/window'
 
 /** 顶部标签栏高度 */
 export const TOOLBAR_HEIGHT = 44
+
+/** Webview宽高和坐标 */
+const webviewSize: WebviewSize = {
+  x: null,
+  y: null,
+  width: null,
+  height: null
+}
 
 let mainWindow: BrowserWindow | null = null
 
@@ -28,6 +37,7 @@ export function createWindow(): BrowserWindow {
   mainWindow = new BrowserWindow({
     width: 1100,
     height: 720,
+    minWidth: 600,
     show: false,
     autoHideMenuBar: true,
     ...(process.platform === 'linux' ? { icon } : {}),
@@ -142,6 +152,11 @@ function applyLayers(): void {
   attached = desired
 }
 
+export function changeWebviewSize(size: WebviewSize): void {
+  Object.assign(webviewSize, size)
+  updateLayout()
+}
+
 /** 按当前窗口尺寸重新计算各图层的位置 */
 export function updateLayout(): void {
   if (!hasMainWindow()) return
@@ -149,10 +164,10 @@ export function updateLayout(): void {
 
   if (layers.content) {
     setBoundsIfChanged(layers.content, {
-      x: 0,
-      y: TOOLBAR_HEIGHT,
-      width,
-      height: Math.max(0, height - TOOLBAR_HEIGHT)
+      x: webviewSize.x ?? 0,
+      y: webviewSize.y ?? TOOLBAR_HEIGHT,
+      width: webviewSize.width ?? width,
+      height: webviewSize.height ?? Math.max(0, height - TOOLBAR_HEIGHT)
     })
   }
   if (layers.overlay) {
